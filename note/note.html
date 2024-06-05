@@ -1,0 +1,300 @@
+<link rel="stylesheet" href="assets/vendor/bootstrap-5.1.3/css/bootstrap.css">
+
+
+- edit.php ( frontend design - include select option and content tab ) && plugin 
+- edit.php ( php - update course_image and course_details )
+- delete.php ( php - delete ) 
+- profile.php ( frontend design ) && bug also ( new user !image )
+- update_password ( frontend and php - update ) 
+- course category sidebar ( frontend + php select for each loop ) 
+- no_of_login ( php )
+
+
+INSERT INTO users 
+( firstname, lastname, username, password )
+VALUES 
+('Jatin','Yadav','admin','admin'),
+('Rudra','Kumar','rudra','admin');
+
+INSERT INTO courses 
+(title, duration, user_id)
+VALUES
+('Mastering The Art Of Digital Communication', '3', 1),
+('Web Wizardry 101: Mastering The Internet', '1 H 50 M', 1),
+('E-Learning Essentials: A Comprehensive Guide', '1 H 50 M', 1),
+('CyberClass 101: A Guide To Online Education', '1 H 50 M', 1),
+('Mastering The Art Of Digital Communication', '1 H 50 M', 1),
+('Web Wizardry 101: Mastering The Internet', '1 H 50 M', 1),
+('E-Learning Essentials: A Comprehensive Guide', '1 H 50 M', 1),
+('CyberClass 101: A Guide To Online Education', '1 H 50 M', 1);
+
+CREATE TABLE courses (
+    id int unsigned auto_increment primary key,
+    user_id int unsigned,
+    title varchar(255) not null,
+    category varchar(100) default 'DIGITAL MARKETING',
+    duration varchar(100),
+    course_image varchar(255),
+    content text
+);
+
+if ( $_FILES['user_image']['name'] == null ) {
+    echo "error";
+}
+else if ($db->has('user_details', $data, ['id' => $_SESSION['user'] ['id']])) {
+    // $db->update('user_details', $data, [ 'id' => $_SESSION['user']['id'] ] );
+    $db->update('user_details', $data, ['id' => $_SESSION['user']['id']]);
+} else {
+    $db->insert("user_details", $data);
+}
+
+
+<?php
+    include_once("../inc/header.php");
+    $courses = $db->select("courses", '*' , [ 'user_id' => $_SESSION['user']['id'] ] );
+
+    if ($_SERVER['REQUEST_METHOD'] == "POST" && $_POST['form_type'] == 'edit_course') {
+        if ($_POST['title'] == "" || $_POST['category'] == "" || $_POST['duration'] == "") {
+            echo "Error!";
+        } else {
+            // get the course id from the form
+            $course_id = $_POST['course_id'];
+
+            // collect the course data from $_POST
+            $data = [
+                'title' => $_POST['title'],
+                'category' => $_POST['category'],
+                'duration' => $_POST['duration']
+            ];
+
+            // check if there is a course image uploaded
+            if (!empty($_FILES['course_image']['name'])) {
+                $data['course_image'] = $_FILES['course_image']['name'];
+                move_uploaded_file($_FILES['course_image']['tmp_name'], $url->home_dir("uploads/") . $_FILES['course_image']['name']);
+            }
+
+            // update the course data
+            $db->update('courses', $data, ['id' => $course_id]);
+
+            // set the flash data to display message
+            $session->set_flash('success', 'Course has been updated successfully!');
+
+            // redirect back to the same page to prevent resubmission
+            $url->redirect('edit.php');
+        }
+    }
+?>
+<div class="container">
+    <div class="row">
+        <div class="col-md-3">
+            <?php include(__DIR__ . "/sidebar.php"); ?>
+        </div>
+        <div class="col-md-9">
+            <h1>Edit Courses</h1>
+            <form action="edit.php" method="post" enctype="multipart/form-data">
+                <input type="hidden" name="form_type" value="edit_course">
+                <div class="mb-3">
+                    <label for="title" class="form-label">Title</label>
+                    <input type="text" class="form-control" name="title" id="title" placeholder="Enter course title">
+                </div>
+                <div class="mb-3">
+                    <label for="category" class="form-label">Category</label>
+                    <input type="text" class="form-control" name="category" id="category" placeholder="Enter course category">
+                </div>
+                <div class="mb-3">
+                    <label for="duration" class="form-label">Duration</label>
+                    <input type="text" class="form-control" name="duration" id="duration" placeholder="Enter course duration">
+                </div>
+                <div class="mb-3">
+                    <label for="course_image" class="form-label">Course Image</label>
+                    <input type="file" class="form-control" name="course_image" id="course_image">
+                </div>
+                <button class="btn btn-primary" type="submit">Update Course</button>
+            </form>
+        </div>
+    </div>
+</div>
+<?php include("../inc/footer.php")?>
+
+
+<?php 
+    include_once("../inc/header.php");
+    $auth->no_login( $url->home('login.php'));
+    $course_id = $_GET['id'];
+    $course = $db->get("courses", '*' , ["id" => $course_id]);
+
+    if( $_SERVER['REQUEST_METHOD'] == "POST" ) {
+        if( $_POST['category'] == "" || $_POST['duration'] == "" || $_POST['title'] == "") {
+            echo "Error!";
+        } else {
+
+            $data = [
+                'category' => $_POST['category'],
+                'duration' => $_POST['duration'],
+                'title' => $_POST['title']
+            ];
+
+            $db->update( 'courses', $data, ['id' => $course_id] );
+   
+            $auth->login( $data );
+
+            $session->set_flash( 'success', 'User has been updated successfully!' );
+
+            $url->redirect('edit.php?id=' . $course_id);
+        }
+
+    }
+?>
+    <div class="container">
+        <div class="row">
+            <div class="col-md-3">
+                <?php include(__DIR__ . "/sidebar.php"); ?>
+            </div>
+            <div class="col-md-9 card rounded-4 border-0 shadow-sm p-3"  style="width:30%; transform: translateX(60%);">
+                <?php
+                if( $session->check_flash( 'success' ) ) {
+                    echo "<div class='alert bg-success text-white'>
+                            <p>" . $session->get_flash( 'success' ) . "</p>
+                        </div>
+                    ";
+                }
+                ?>
+                <div class="user_image">
+                    <div data-bs-toggle="modal" data-bs-target="#myModal"> 
+                    <img src="../uploads/<?= $course['course_image']; ?>" alt="default image" style="height: 250px; width: 100%;" class="img-fluid rounded-3">
+                    </div>
+                </div>
+            
+                <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post">
+                <input type="hidden" name="id" value="<?= $course['id']; ?>">
+                    <div class="card-body p-0">
+                        <div class="d-flex justify-content-between my-3">
+                            <input class="form-control text-black-50 fw-bold text-uppercase m-0" type="text" name="category" id="category" placeholder="Enter course category" value="<?= $course['category'] ?>">
+                            <div class="d-flex align-items-center">
+                                <svg width="20" height="20" class="mx-2">
+                                    <use xlink:href="#clock" class="text-black-50"></use>
+                                </svg>
+                                <input class="form-control text-black-50 fw-bold text-uppercase m-0" type="text" name="duration" id="duration" placeholder="Enter course duration" style="width:90%" value="<?= $course['duration'] ?>">
+                            </div>
+                        </div>
+                        <input class="form-control course-title py-2 m-0" type="text" name="title" id="title" placeholder="Enter course title" value="<?= $course['title'] ?>">
+                        <br>
+                        <div class="card-text d-flex">
+                        <h6 class="text-muted fw-semibold m-0 me-2" style="transform: translateY(7px);">By:</h6><input class="form-control text-muted fw-semibold m-0 me-2" type="text" value="<?= $_SESSION['user']['firstname']; ?> <?= $_SESSION['user']['lastname']; ?>" readonly>
+                        </div>
+                        <button class="btn btn-success fw-bold mt-2 rounded-2" type="submit">
+                            Edit User Profile
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+<div class="modal fade" id="myModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <!-- Modal body -->
+            <div class="modal-body">
+                <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post" enctype="multipart/form-data">
+                    <input type="hidden" name="form_type" value="user_image">
+                    <input type="file" name="user_image">
+                    <button class="btn btn-primary rounded-0" type="submit">Upload Image</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<?php include("../inc/footer.php")?>
+
+<?php 
+    include_once("../inc/header.php");
+    $auth->no_login( $url->home('login.php'));
+    $course_id = $_GET['id'];
+    $course = $db->get("courses", '*' , ["id" => $course_id]);
+
+    if( $_SERVER['REQUEST_METHOD'] == "POST" ) {
+        if( $_POST['category'] == "" || $_POST['duration'] == "" || $_POST['title'] == "") {
+            echo "Error!";
+        } else {
+
+            // $course_id = $_GET['id'];
+
+            $data = [
+                'category' => $_POST['category'],
+                'duration' => $_POST['duration'],
+                'title' => $_POST['title']
+            ];
+
+            $db->update( 'courses', $data, ['id' => $courses_id] );
+   
+            $auth->login( $data );
+
+            $session->set_flash( 'success', 'User has been updated successfully!' );
+
+            $url->redirect('edit.php');
+        }
+
+    }
+?>
+    <div class="container">
+        <div class="row">
+            <div class="col-md-3">
+                <?php include(__DIR__ . "/sidebar.php"); ?>
+            </div>
+            <div class="col-md-9 card rounded-4 border-0 shadow-sm p-3"  style="width:30%; transform: translateX(60%);">
+                <?php
+                if( $session->check_flash( 'success' ) ) {
+                    echo "<div class='alert bg-success text-white'>
+                            <p>" . $session->get_flash( 'success' ) . "</p>
+                        </div>
+                    ";
+                }
+                ?>
+                <div class="user_image">
+                    <div data-bs-toggle="modal" data-bs-target="#myModal"> 
+                    <img src="../uploads/<?= $course['course_image']; ?>" alt="default image" style="height: 250px; width: 100%;" class="img-fluid rounded-3">
+                    </div>
+                </div>
+            
+                <form action="edit.php" method="post">
+                <input type="hidden" name="id" value="<?= $course['id']; ?>">
+                    <div class="card-body p-0">
+                        <div class="d-flex justify-content-between my-3">
+                            <input class="form-control text-black-50 fw-bold text-uppercase m-0" type="text" name="category" id="category" placeholder="Enter course category" value="<?= $course['category'] ?>">
+                            <div class="d-flex align-items-center">
+                                <svg width="20" height="20" class="mx-2">
+                                    <use xlink:href="#clock" class="text-black-50"></use>
+                                </svg>
+                                <input class="form-control text-black-50 fw-bold text-uppercase m-0" type="text" name="duration" id="duration" placeholder="Enter course duration" style="width:90%" value="<?= $course['duration'] ?>">
+                            </div>
+                        </div>
+                        <input class="form-control course-title py-2 m-0" type="text" name="title" id="title" placeholder="Enter course title" value="<?= $course['title'] ?>">
+                        <br>
+                        <div class="card-text d-flex">
+                        <h6 class="text-muted fw-semibold m-0 me-2" style="transform: translateY(7px);">By:</h6><input class="form-control text-muted fw-semibold m-0 me-2" type="text" value="<?= $_SESSION['user']['firstname']; ?> <?= $_SESSION['user']['lastname']; ?>" readonly>
+                        </div>
+                        <button class="btn btn-success fw-bold mt-2 rounded-2" type="submit">
+                            Edit User Profile
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+<div class="modal fade" id="myModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <!-- Modal body -->
+            <div class="modal-body">
+                <form action="<?= $_SERVER['PHP_SELF'];?>" method="post" enctype="multipart/form-data">
+                    <input type="hidden" name="form_type" value="user_image">
+                    <input type="file" name="user_image">
+                    <button class="btn btn-primary rounded-0" type="submit">Upload Image</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<?php include("../inc/footer.php")?>
